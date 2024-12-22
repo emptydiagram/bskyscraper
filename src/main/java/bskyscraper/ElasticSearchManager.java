@@ -1,6 +1,8 @@
 package bskyscraper;
 
 
+import java.io.IOException;
+
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
@@ -106,21 +108,17 @@ public class ElasticSearchManager {
 
     }
 
-    public void performSetup(String[] args) {
-        try {
-            GetPipelineResponse pipelineResponse = this.esClient.ingest().getPipeline(p -> p.id(ingestPipelineName));
+    public void performSetup() throws IOException {
+        GetPipelineResponse pipelineResponse = this.esClient.ingest().getPipeline(p -> p.id(ingestPipelineName));
 
-            if (!pipelineResponse.result().containsKey(ingestPipelineName)) {
-                this.createTimestampIngestionPipeline();
-            }
+        if (!pipelineResponse.result().containsKey(ingestPipelineName)) {
+            this.createTimestampIngestionPipeline();
+        }
 
-            boolean exists = this.esClient.exists(e -> e.index(indexName)).value();
+        boolean exists = this.esClient.indices().exists(e -> e.index(indexName)).value();
 
-            if(!exists) {
-                this.createIndex();
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if(!exists) {
+            this.createIndex();
         }
 
     }

@@ -24,9 +24,20 @@ public class App {
 
 
     public static void main(String[] args) {
+
         CountDownLatch latch = new CountDownLatch(1);
-        var url = Util.makeJetstreamSubUrl(new String[] {"app.bsky.feed.post"});
+
+        try {
+            ElasticSearchManager esMgr = new ElasticSearchManager();
+            esMgr.performSetup();
+        } catch (Exception e) {
+            logger.error("Error performing Elasticsearch setup: {}", e);
+            latch.countDown();
+        }
+
+        var url = Util.makeJetstreamSubUrl(new String[]{});
         System.out.println(url);
+
         WebSocketClient wsClient = new StandardWebSocketClient();
         WebSocketHandler wsHandler = new AbstractWebSocketHandler() {
             @Override
