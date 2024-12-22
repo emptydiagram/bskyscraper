@@ -13,33 +13,19 @@ import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+
 public class App {
 
     private static final Logger logger = LoggerFactory.getLogger(App.class);
-    private static final String jetStreamHost = "jetstream2.us-east.bsky.network";
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static String subscribeToJetstream(String[] wantedCollections) {
-        var urlBuilder = new StringBuilder();
-        urlBuilder.append(String.format("wss://%s/subscribe", jetStreamHost));
-
-        if (wantedCollections.length > 0) {
-            urlBuilder.append("?");
-            boolean firstColl = true;
-            for(String coll : wantedCollections) {
-                if(firstColl) {
-                    firstColl = false;
-                } else {
-                    urlBuilder.append("&");
-                }
-                urlBuilder.append(String.format("wantedCollections=%s", coll));
-            }
-        }
-        return urlBuilder.toString();
-    }
 
     public static void main(String[] args) {
         CountDownLatch latch = new CountDownLatch(1);
-        var url = subscribeToJetstream(new String[] {"app.bsky.feed.post"});
+        var url = Util.makeJetstreamSubUrl(new String[] {"app.bsky.feed.post"});
         System.out.println(url);
         WebSocketClient wsClient = new StandardWebSocketClient();
         WebSocketHandler wsHandler = new AbstractWebSocketHandler() {
@@ -56,7 +42,14 @@ public class App {
             @Override
             protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
                 String payload = message.getPayload();
-                logger.info("Received message: {}", payload);
+
+                try {
+                    JsonNode jsonNode = objectMapper.readTree(payload);
+                    logger.info("Parsed message: {}", jsonNode.toPrettyString());
+                    // objectMapper.readValue(payload, JetstreamEvent.class);
+                } catch (Exception e) {
+                    logger.error("Failed to parse message as JSON: {}", e);
+                }
             }
         };
         CompletableFuture<Void> wsFuture = wsClient.execute(wsHandler, url)
