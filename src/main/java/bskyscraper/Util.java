@@ -26,19 +26,15 @@ public class Util {
 
     public static boolean keepMessage(String message) {
         String regex = """
-            "langs":\\s*\\[(.*?)\\]""";
+            "kind":\\s*"(.*?)" """;
+
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(message);
         if (matcher.find()) {
-            String langsContent = matcher.group(1);
-            String[] langs = langsContent.split("[\",\\s]+");
-            for (var lang : langs) {
-                if(lang.equals("en")) {
-                    return true;
-                }
+            String kind = matcher.group(1);
+            if(kind.equals("commit")) {
+                return true;
             }
-        } else {
-            System.out.println("nofind");
         }
         return false;
     }
