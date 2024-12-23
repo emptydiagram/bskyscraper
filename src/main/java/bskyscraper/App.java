@@ -19,6 +19,8 @@ import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -26,7 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class App {
 
     private static final Logger logger = LoggerFactory.getLogger(App.class);
-    // private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final int numWorkerThreads = 2;
     private static final int queueBatchSize = 10;
@@ -35,8 +37,8 @@ public class App {
     public static void main(String[] args) {
 
         CountDownLatch latch = new CountDownLatch(1);
-        BlockingQueue<String> messageQueue = new LinkedBlockingQueue<String>();
-        ElasticSearchManager esMgr = new ElasticSearchManager();
+        BlockingQueue<JsonNode> messageQueue = new LinkedBlockingQueue<JsonNode>();
+        OpenSearchManager esMgr = new OpenSearchManager();
 
         try {
             esMgr.performSetup();
@@ -46,7 +48,7 @@ public class App {
             return;
         }
 
-        var url = Util.makeJetstreamSubUrl(new String[]{});
+        var url = Util.makeJetstreamSubUrl(new String[]{"app.bsky.feed.post"});
         System.out.println(url);
 
         WebSocketClient wsClient = new StandardWebSocketClient();
@@ -66,12 +68,11 @@ public class App {
                 String payload = message.getPayload();
 
                 try {
+                    // FIXME: would ideally like to not parse this, but I don't want to figure out how to use a raw json document
+                    JsonNode jsonNode = objectMapper.readTree(payload);
                     if(Util.keepMessage(payload)) {
-                        messageQueue.add(payload);
+                        messageQueue.add(jsonNode);
                     }
-                    // JsonNode jsonNode = objectMapper.readTree(payload);
-                    // logger.info("Parsed message: {}", jsonNode.toPrettyString());
-                    // objectMapper.readValue(payload, JetstreamEvent.class);
                 } catch (Exception e) {
                     logger.error("Failed to parse message as JSON: {}", e);
                 }
@@ -99,8 +100,8 @@ public class App {
         }
     }
 
-    private static void processMessages(BlockingQueue<String> queue, int batchSize, ElasticSearchManager mgr) {
-        List<String> batch = new ArrayList<>();
+    private static <T> void processMessages(BlockingQueue<T> queue, int batchSize, OpenSearchManager mgr) {
+        List<T> batch = new ArrayList<>();
         while (true) {
             try {
                 batch.add(queue.take());
@@ -119,7 +120,7 @@ public class App {
         }
     }
 
-    private static void processBatch(List<String> batch, ElasticSearchManager mgr) throws Exception{
+    private static <T> void processBatch(List<T> batch, OpenSearchManager mgr) throws Exception{
         int maxRetries = 4;
         int retryCount = 0;
         int sleepDuration = 5000;
