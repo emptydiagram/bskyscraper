@@ -5,21 +5,37 @@ import java.util.regex.Pattern;
 
 public class Util {
 
-    public static String makeJetstreamSubUrl(String[] wantedCollections) {
+    private static void appendArrayAsQueryParams(StringBuilder sb, String paramName, String[] values, boolean isFirst) {
+        if (isFirst) {
+            sb.append("?");
+        } else {
+            sb.append("&");
+        }
+
+        boolean firstColl = true;
+        for(String value : values) {
+            if(firstColl) {
+                firstColl = false;
+            } else {
+                sb.append("&");
+            }
+            sb.append(String.format("%s=%s", paramName, value));
+        }
+
+    }
+
+    public static String makeJetstreamSubUrl(String[] wantedCollections, String[] wantedDids) {
+        if (wantedDids == null) {
+            wantedDids = new String[]{};
+        }
         var urlBuilder = new StringBuilder();
         urlBuilder.append(String.format("wss://%s/subscribe", Constants.bskyJetstreamHost));
 
         if (wantedCollections.length > 0) {
-            urlBuilder.append("?");
-            boolean firstColl = true;
-            for(String coll : wantedCollections) {
-                if(firstColl) {
-                    firstColl = false;
-                } else {
-                    urlBuilder.append("&");
-                }
-                urlBuilder.append(String.format("wantedCollections=%s", coll));
-            }
+            appendArrayAsQueryParams(urlBuilder, "wantedCollections", wantedCollections, true);
+        }
+        if (wantedDids.length > 0) {
+            appendArrayAsQueryParams(urlBuilder, "wantedDids", wantedDids, wantedCollections.length == 0);
         }
         return urlBuilder.toString();
     }

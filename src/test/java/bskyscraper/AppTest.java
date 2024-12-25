@@ -10,7 +10,7 @@ public class AppTest {
 
     @Test
     public void shouldMakeSubscribeUrl() {
-        var url = Util.makeJetstreamSubUrl(new String[] {"app.bsky.feed.post"});
+        var url = Util.makeJetstreamSubUrl(new String[] {"app.bsky.feed.post"}, null);
         var expectedUrl = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post";
         assertEquals(url, expectedUrl);
 
